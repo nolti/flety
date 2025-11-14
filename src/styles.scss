@@ -1,1 +1,89 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+@include mat.core();
+// @use './app/core/theming/my-custom-theme' as app-theme; // Ejemplo de tu tema custom
+// @include mat.all-component-themes(app-theme.$my-custom-theme);
+
+html, body { height: 100%; }
+
+html {
+  @include mat.theme((
+    color: (
+      primary: mat.$azure-palette,
+      tertiary: mat.$violet-palette,
+    ),
+    typography: (
+      plain-family: Ubuntu Sans,
+      brand-family: Ubuntu Sans,
+      bold-weight: 900,
+      medium-weight: 500,
+      regular-weight: 300,
+    ),
+    density: 0,
+  ));
+}
+
+body {
+  color-scheme: light; 
+  margin: 0;
+  font-family: 'Ubuntu Sans', sans-serif;
+  color: var(--mat-sys-on-surface);
+  font-size: 0.8rem;
+  transition: background-color 0.3s, color 0.3s;
+  background-color: var(--mat-sys-surface);
+}
+
+/* Tema OSCURO (CLAVE: Aplicado al selector body.dark-theme) */
+body.dark-theme {
+  color-scheme: dark;
+  @include mat.theme((
+    color: (
+      primary: mat.$cyan-palette,
+      tertiary: mat.$violet-palette,
+      theme-type: dark,
+    ),
+    typography: (
+      plain-family: Ubuntu Sans,
+      brand-family: Ubuntu Sans,
+      bold-weight: 900,
+      medium-weight: 500,
+      regular-weight: 300,
+    ),
+    density: 0,
+  ));
+}
+
+:root {
+  @include mat.card-overrides ((
+    outlined-outline-width: 1px,
+    outlined-outline-color: var(--mat-sys-outline-variant),
+    outlined-container-color: var(--mat-sys-surface-container),
+    outlined-container-elevation: 3
+  ));
+
+  @include mat.stepper-overrides((
+    // Color del fondo del ícono para el estado 'done' (completado)
+    // header-done-state-icon-background-color: blue, 
+    // Color del texto/ícono para el estado 'done' (completado)
+    // header-icon-foreground-color: var(--mat-sys-surface-bright), 
+    // Color del fondo del ícono para el estado 'selected' (activo)
+    // header-selected-state-icon-background-color: #ff5722, /* Naranja */
+    // Color de la línea de conexión entre pasos
+    line-color: var(--mat-sys-primary),
+    // Color de fondo del contenedor del stepper
+    container-color: var(--mat-sys-surface-container)
+  ));
+
+  @include mat.divider-overrides((
+    color: var(--mat-sys-outline)
+  ));
+
+  @include mat.tooltip-overrides((
+    container-color: var(--mat-sys-error),
+    container-shape: 16px,
+  ));
+
+}
+
+.mat-horizontal-content-container {
+  padding: 0 8px 0 8px !important;
+}

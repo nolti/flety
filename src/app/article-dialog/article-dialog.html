@@ -1,0 +1,32 @@
+<h2 mat-dialog-title>Detalles del Artículo</h2>
+<mat-dialog-content [formGroup]="form">
+  <div class="name-weight-container">
+    <mat-form-field>
+      <mat-label>Nombre del artículo</mat-label>
+      <input matInput formControlName="nombre">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Peso (kg)</mat-label>
+      <input matInput type="number" formControlName="peso">
+    </mat-form-field>
+  </div>
+  <div class="dimensions">
+    <mat-form-field>
+      <mat-label>Largo (cm)</mat-label>
+      <input matInput type="number" formControlName="largo">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Ancho (cm)</mat-label>
+      <input matInput type="number" formControlName="ancho">
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Alto (cm)</mat-label>
+      <input matInput type="number" formControlName="alto">
+    </mat-form-field>
+  </div>
+
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button mat-button (click)="onNoClick()">Cancelar</button>
+  <button mat-button [mat-dialog-close]="form.value" [disabled]="!form.valid">Guardar</button>
+</mat-dialog-actions>

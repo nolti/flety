@@ -1,0 +1,22 @@
+mat-form-field {
+  width: 100%;
+}
+
+.dimensions {
+  display: flex;
+  gap: 16px;
+}
+
+.name-weight-container {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.name-weight-container mat-form-field:first-child {
+  flex-grow: 1;
+}
+
+.name-weight-container mat-form-field:last-child {
+  width: 120px;
+}
