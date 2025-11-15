@@ -1,5 +1,6 @@
 <main class="main-content" [class.dark-theme]="isDarkMode">
-  <button aria-label="Cambiar Tema" matMiniFab (click)="toggleTheme()" class="theme-toggle-button">
+
+  <button aria-label="Cambiar Tema" mat-icon-button (click)="toggleTheme()" class="theme-button">
       <mat-icon>{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</mat-icon>
   </button>
 
@@ -26,11 +27,11 @@
         </div>
       </div>
       <div class="stepper-container">
-        <mat-stepper [linear]="true" #stepper (selectionChange)="onStepChange($event)">
+        <mat-stepper labelPosition="bottom" [linear]="true" #stepper (selectionChange)="onStepChange($event)">
           <mat-step [stepControl]="firstFormGroup">
               <form [formGroup]="firstFormGroup">
                   <ng-template matStepLabel>Trayecto</ng-template>
-                  <h2 class="section-title">Origen y Destino: <small>Ingresa desde dónde retiramos y hacia dónde enviamos tu Flete.</small></h2>
+                  <h2 class="section-title">Origen y Destino: <small>Ingresa los puntos de retiro y entrega de tu Flete.</small></h2>
                   <mat-divider class="section-divider"></mat-divider>
                   <mat-form-field appearance="outline" class="full-width">
                       <mat-label>Desde</mat-label>

@@ -1,4 +1,4 @@
-.theme-toggle-button {
+.theme-button {
   position: fixed;
   top: 16px;
   right: 16px;
@@ -7,8 +7,8 @@
 
 .logo {
   display: flex;
-  margin-top: 1rem;
-  margin-bottom: 0.7rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
   justify-content: center;
   align-items: center;
 }
@@ -25,9 +25,9 @@
 }
 
 .container {
-    max-width: 670px; /* 720px Ancho máximo más ajustado para formularios */
+    max-width: 640px; /* 720px Ancho máximo más ajustado para formularios */
     margin: 0 auto; /* Centrado horizontal */
-    padding: 0 1rem; /* Espaciado lateral para que no toque los bordes */
+    padding: 0 1rem 1rem;
     width: 100%;
     display: flex;
     align-items: center;
@@ -38,6 +38,15 @@
 
 .maincard {
     padding: 2rem; /* Aumento el padding para más aire dentro de la tarjeta */
+}
+
+.card-title {
+    color: var(--mat-sys-primary);
+    font-weight: 600;
+}
+.card-subtitle {
+    color: var(--mat-sys-secondary);
+    font-weight: 400;
 }
 
 .header {
@@ -228,31 +237,36 @@ mat-form-field, mat-filled-button, mat-outlined-button {
 
 @media (max-width: 600px) {
     .container {
-        padding: 0 0.5rem; /* Reduzco el padding lateral en móviles */
+        padding: 0 0 0.5rem; /* Reduzco padding en móviles */
+        max-width: 96%; /* Ancho máximo para formularios en móviles */
         min-height: unset; /* Elimino la altura mínima para que el contenido suba */
     }
 
+    .logo {
+        margin-top: 1.5rem; /* Añado un margen superior */
+    }
+
     .logo img {
-        height: 40px; /* Reduzco el tamaño del logo */
+        height: 36px; /* Reduzco el tamaño del logo */
     }
 
     .logo h1 {
-        font-size: 1.5rem; /* Reduzco el tamaño del título */
+        font-size: 1.4rem; /* Reduzco el tamaño del título */
     }
 
     .maincard {
         padding: 1rem; /* Reduzco el padding en móviles */
         width: 100%; /* Hago que la tarjeta ocupe todo el ancho disponible */
-        margin-top: 1rem; /* Añado un margen superior */
     }
 
     .shipping-types {
-        flex-direction: column; /* Apilo las opciones verticalmente */
+        // flex-direction: column; /* Apilo las opciones verticalmente */
         gap: 1rem;
     }
 
     .shipping-divider {
-        display: none; /* Oculto el divisor vertical en móviles */
+        border-right-color: var(--mat-sys-outline-variant);
+        // display: none; /* Oculto el divisor vertical en móviles */
     }
 
     .stepper {
