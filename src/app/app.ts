@@ -94,6 +94,8 @@ export class AppComponent implements OnInit, AfterViewInit {
   filteredDestinoOptions!: Observable<string[]>;
   filteredDesdeOptions!: Observable<string[]>;
 
+  readonly stepIcons = ['location_on', 'inventory_2', 'calendar_today', 'receipt_long'];
+
   fuelCost = 950; // Cost of fuel in ARS
 
   autocompleteService: any;

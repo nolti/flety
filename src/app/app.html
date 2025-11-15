@@ -28,6 +28,15 @@
       </div>
       <div class="stepper-container">
         <mat-stepper labelPosition="bottom" [linear]="true" #stepper (selectionChange)="onStepChange($event)">
+          <ng-template matStepperIcon="number" let-index="index">
+            <mat-icon>{{ stepIcons[index] }}</mat-icon>
+          </ng-template>
+          <ng-template matStepperIcon="edit" let-index="index">
+            <mat-icon>{{ stepIcons[index] }}</mat-icon>
+          </ng-template>
+          <ng-template matStepperIcon="done" let-index="index">
+            <mat-icon>{{ stepIcons[index] }}</mat-icon>
+          </ng-template>
           <mat-step [stepControl]="firstFormGroup">
               <form [formGroup]="firstFormGroup">
                   <ng-template matStepLabel>Trayecto</ng-template>
