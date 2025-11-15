@@ -285,6 +285,10 @@ mat-form-field, mat-filled-button, mat-outlined-button {
         display: none;
     }
 
+    ::ng-deep .mat-step-label {
+      display: none !important;
+    }
+
     .button-group {
         flex-direction: column-reverse;
     }
