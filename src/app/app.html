@@ -44,8 +44,8 @@
                   <mat-divider class="section-divider"></mat-divider>
                   <mat-form-field appearance="outline" class="full-width">
                       <mat-label>Desde</mat-label>
-                      <input type="text" matInput formControlName="desde" [matAutocomplete]="autoDesde" (blur)="validateAddress('desde')" required>
-                      <mat-autocomplete #autoDesde="matAutocomplete">
+                      <input type="text" matInput formControlName="desde" [matAutocomplete]="autoDesde" required>
+                      <mat-autocomplete #autoDesde="matAutocomplete" (optionSelected)="onDesdeSelected($event)">
                           <mat-option *ngFor="let option of filteredDesdeOptions | async" [value]="option">
                               {{option}}
                           </mat-option>
@@ -69,8 +69,8 @@
 
                   <mat-form-field appearance="outline" class="full-width">
                       <mat-label>Destino</mat-label>
-                      <input type="text" matInput formControlName="destino" [matAutocomplete]="autoDestino" (blur)="validateAddress('destino')" required>
-                      <mat-autocomplete #autoDestino="matAutocomplete">
+                      <input type="text" matInput formControlName="destino" [matAutocomplete]="autoDestino" required>
+                      <mat-autocomplete #autoDestino="matAutocomplete" (optionSelected)="onDestinoSelected($event)">
                           <mat-option *ngFor="let option of filteredDestinoOptions | async" [value]="option">
                               {{option}}
                           </mat-option>

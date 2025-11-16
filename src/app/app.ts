@@ -98,7 +98,6 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   fuelCost = 950; // Cost of fuel in ARS
 
-  autocompleteService: any;
   geocoder: any;
   isDarkMode = true;
   mapsReady = false;
@@ -108,6 +107,11 @@ export class AppComponent implements OnInit, AfterViewInit {
   isCalculating: boolean = false;
   private googleMapsLoaded: Promise<void>;
   private resolveGoogleMapsLoaded!: () => void;
+  
+  // Coordenadas para mejorar la precisión del cálculo de rutas
+  selectedDestinoCoords: {lat: number, lng: number} | null = null;
+  selectedDesdeCoords: {lat: number, lng: number} | null = null;
+  currentLocationCoords: {lat: number, lng: number} | null = null;
 
   displayedColumns: string[] = ['nombre', 'largo', 'ancho', 'alto', 'peso', 'acciones'];
   dataSource = new BehaviorSubject<any[]>([]);
@@ -174,6 +178,7 @@ export class AppComponent implements OnInit, AfterViewInit {
           this.firstFormGroup.get('desde')?.enable();
           this.mapsReady = true;
           this.cdr.detectChanges();
+          this.initGeolocationBias();
         }
       });
     }
@@ -223,6 +228,9 @@ export class AppComponent implements OnInit, AfterViewInit {
   resetCotizacion() {
     this.fleteData = null;
     this.fleteCalculated = false;
+    // Limpiar coordenadas almacenadas al cambiar direcciones
+    this.selectedDestinoCoords = null;
+    this.selectedDesdeCoords = null;
     this.cdr.detectChanges();
   }
 
@@ -402,6 +410,14 @@ export class AppComponent implements OnInit, AfterViewInit {
       });
       const responseData = await response.json();
       console.log('Response from Google Address Validation API:', responseData);
+      
+      // Si la validación es exitosa y tenemos coordenadas, guardarlas
+      if (responseData && responseData.result && responseData.result.geocode && responseData.result.geocode.location) {
+        const coords = responseData.result.geocode.location;
+        console.log('Coordenadas obtenidas de validación:', coords);
+        // Las coordenadas se usarán en el próximo cálculo de ruta
+      }
+      
       return responseData;
     } catch (error) {
       console.error('Error validating address with Google API:', error);
@@ -416,25 +432,93 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     return new Observable(observer => {
       if (typeof query === 'string') {
-        google.maps.importLibrary("places").then(({ Place }: { Place: any }) => {
-          const request = {
-            textQuery: query,
-            fields: ['displayName'],
-            locationBias: new google.maps.LatLng(-34.6037, -58.3816), // Buenos Aires
-            language: 'es',
-            region: 'ar',
-          };
-          return Place.searchByText(request);
-        }).then((response: any) => {
-          const placeNames = response.places ? response.places.map((p: any) => p.displayName) : [];
-          observer.next(placeNames);
-          observer.complete();
+        // Usar la nueva API de Place Autocomplete con fetchAutocompleteSuggestions
+        google.maps.importLibrary("places").then(async ({ AutocompleteSuggestion }: { AutocompleteSuggestion: any }) => {
+          try {
+            // Crear token de sesión para optimizar costos
+            const sessionToken = new google.maps.places.AutocompleteSessionToken();
+            
+            // Configurar la petición de autocompletado
+            const request: any = {
+              input: query,
+              sessionToken: sessionToken,
+              language: 'es',
+              region: 'ar',
+              includedRegionCodes: ['ar'],
+            };
+            if (this.currentLocationCoords) {
+              const origin = new google.maps.LatLng(this.currentLocationCoords.lat, this.currentLocationCoords.lng);
+              request.origin = origin;
+              request.locationBias = origin;
+            }
+            
+            // Obtener sugerencias de autocompletado
+            const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+            
+            // Procesar las sugerencias para obtener direcciones formateadas
+            const placePredictions = suggestions
+              .filter((suggestion: any) => suggestion.placePrediction)
+              .map((suggestion: any) => {
+                const prediction = suggestion.placePrediction;
+                // Combinar mainText y secondaryText para obtener la dirección completa
+                const mainText = prediction.mainText?.text || '';
+                const secondaryText = prediction.secondaryText?.text || '';
+                return secondaryText ? `${mainText}, ${secondaryText}` : mainText;
+              });
+            
+            try {
+              const { Place } = await google.maps.importLibrary("places") as any;
+              const textRequest: any = {
+                textQuery: query,
+                fields: ['displayName', 'formattedAddress', 'location'],
+                language: 'es',
+                region: 'ar',
+              };
+              if (this.currentLocationCoords) {
+                const origin = new google.maps.LatLng(this.currentLocationCoords.lat, this.currentLocationCoords.lng);
+                textRequest.locationBias = origin;
+              }
+              const response = await Place.searchByText(textRequest);
+              const textAddresses = response.places ? response.places.map((p: any) => p.formattedAddress || p.displayName) : [];
+              const merged = Array.from(new Set([...placePredictions, ...textAddresses]));
+              observer.next(merged);
+              observer.complete();
+            } catch (textErr) {
+              observer.next(placePredictions);
+              observer.complete();
+            }
+          } catch (err) {
+            console.error('Error searching places with new API:', err);
+            // Fallback a la búsqueda por texto si el autocompletado falla
+            try {
+              const { Place } = await google.maps.importLibrary("places") as any;
+              const textRequest = {
+                textQuery: query,
+                fields: ['displayName', 'formattedAddress'],
+                language: 'es',
+                region: 'ar',
+              };
+              if (this.currentLocationCoords) {
+                const origin = new google.maps.LatLng(this.currentLocationCoords.lat, this.currentLocationCoords.lng);
+                (textRequest as any).locationBias = origin;
+              }
+              const response = await Place.searchByText(textRequest);
+              const placeNames = response.places ? response.places.map((p: any) => p.formattedAddress || p.displayName) : [];
+              observer.next(placeNames);
+              observer.complete();
+            } catch (fallbackErr) {
+              console.error('Fallback search also failed:', fallbackErr);
+              observer.next([]);
+              observer.complete();
+            }
+          }
         }).catch((err: any) => {
-          console.error('Error searching places:', err);
+          console.error('Error loading places library:', err);
           observer.next([]);
           observer.complete();
         });
       } else {
+        // Para búsqueda por coordenadas, usar geocoding
         this.geocoder.geocode({ location: query }, (results: any, status: any) => {
           if (status === google.maps.GeocoderStatus.OK && results[0]) {
             observer.next([results[0].formatted_address]);
@@ -450,6 +534,66 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   onDestinoSelected(event: any) {
     this.firstFormGroup.get('desde')?.enable();
+    
+    // Si se seleccionó una dirección del autocompletado, podemos obtener más detalles
+    if (event && event.option && event.option.value) {
+      const selectedAddress = event.option.value;
+      console.log('Dirección de destino seleccionada:', selectedAddress);
+      
+      // Obtener las coordenadas de la dirección seleccionada para mejorar el cálculo de rutas
+      this.getCoordinatesForAddress(selectedAddress).then(coords => {
+        if (coords) {
+          console.log('Coordenadas de destino obtenidas:', coords);
+          // Guardar las coordenadas para usar en el cálculo de rutas
+          this.selectedDestinoCoords = coords;
+        }
+      }).catch(err => {
+        console.warn('No se pudieron obtener coordenadas para el destino:', err);
+      });
+    }
+  }
+  
+  // Método similar para cuando se selecciona el origen
+  onDesdeSelected(event: any) {
+    // Si se seleccionó una dirección del autocompletado, obtener coordenadas
+    if (event && event.option && event.option.value) {
+      const selectedAddress = event.option.value;
+      console.log('Dirección de origen seleccionada:', selectedAddress);
+      
+      this.getCoordinatesForAddress(selectedAddress).then(coords => {
+        if (coords) {
+          console.log('Coordenadas de origen obtenidas:', coords);
+          this.selectedDesdeCoords = coords;
+        }
+      }).catch(err => {
+        console.warn('No se pudieron obtener coordenadas para el origen:', err);
+      });
+    }
+  }
+  
+  // Método auxiliar para obtener coordenadas de una dirección
+  private async getCoordinatesForAddress(address: string): Promise<{lat: number, lng: number} | null> {
+    try {
+      const { Geocoder } = await google.maps.importLibrary("geocoding") as any;
+      const geocoder = new Geocoder();
+      
+      return new Promise((resolve) => {
+        geocoder.geocode({ address: address }, (results: any, status: any) => {
+          if (status === 'OK' && results[0]) {
+            const location = results[0].geometry.location;
+            resolve({
+              lat: location.lat(),
+              lng: location.lng()
+            });
+          } else {
+            resolve(null);
+          }
+        });
+      });
+    } catch (err) {
+      console.error('Error obteniendo coordenadas:', err);
+      return null;
+    }
   }
 
   getCurrentLocation() {
@@ -457,6 +601,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       this._snackBar.open('Obteniendo ubicación actual...', undefined, { duration: 2000 });
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          this.currentLocationCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
           this.reverseGeocode(position.coords.latitude, position.coords.longitude);
         },
         (error) => {
@@ -488,6 +633,10 @@ export class AppComponent implements OnInit, AfterViewInit {
   
   reverseGeocode(latitude: number, longitude: number) {
     const latlng = new google.maps.LatLng(latitude, longitude);
+    // Guardar las coordenadas de la ubicación actual
+    this.selectedDesdeCoords = { lat: latitude, lng: longitude };
+    this.currentLocationCoords = { lat: latitude, lng: longitude };
+    
     this._searchPlaces(latlng).subscribe(results => {
       if (results.length > 0) {
         this.firstFormGroup.patchValue({ desde: results[0] });
@@ -496,6 +645,19 @@ export class AppComponent implements OnInit, AfterViewInit {
         this._snackBar.open('No se pudo obtener la dirección', 'Cerrar', { duration: 3000 });
       }
     });
+  }
+
+  private initGeolocationBias() {
+    if (!navigator.geolocation) {
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.currentLocationCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+      },
+      () => {},
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 600000 }
+    );
   }
 
   toggleTheme() {
@@ -523,9 +685,25 @@ export class AppComponent implements OnInit, AfterViewInit {
     }
 
     const directionsService = new google.maps.DirectionsService();
+    
+    // Usar coordenadas si están disponibles para mejorar la precisión
+    let origin: string | google.maps.LatLng = desde;
+    let destination: string | google.maps.LatLng = destino;
+    
+    // Si tenemos coordenadas guardadas, usarlas en lugar de las direcciones de texto
+    if (this.selectedDesdeCoords) {
+      origin = new google.maps.LatLng(this.selectedDesdeCoords.lat, this.selectedDesdeCoords.lng);
+      console.log('Usando coordenadas para origen:', this.selectedDesdeCoords);
+    }
+    
+    if (this.selectedDestinoCoords) {
+      destination = new google.maps.LatLng(this.selectedDestinoCoords.lat, this.selectedDestinoCoords.lng);
+      console.log('Usando coordenadas para destino:', this.selectedDestinoCoords);
+    }
+    
     const request = {
-      origin: desde,
-      destination: destino,
+      origin: origin,
+      destination: destination,
       travelMode: google.maps.TravelMode.DRIVING
     };
 
