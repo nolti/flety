@@ -112,6 +112,9 @@ export class AppComponent implements OnInit, AfterViewInit {
   selectedDestinoCoords: {lat: number, lng: number} | null = null;
   selectedDesdeCoords: {lat: number, lng: number} | null = null;
   currentLocationCoords: {lat: number, lng: number} | null = null;
+  desdeValidated: boolean = false;
+  destinoValidated: boolean = false;
+  canContinueFromStep1: boolean = false;
 
   displayedColumns: string[] = ['nombre', 'largo', 'ancho', 'alto', 'peso', 'acciones'];
   dataSource = new BehaviorSubject<any[]>([]);
@@ -479,8 +482,16 @@ export class AppComponent implements OnInit, AfterViewInit {
                 textRequest.locationBias = origin;
               }
               const response = await Place.searchByText(textRequest);
-              const textAddresses = response.places ? response.places.map((p: any) => p.formattedAddress || p.displayName) : [];
-              const merged = Array.from(new Set([...placePredictions, ...textAddresses]));
+              let placesList: any[] = response.places ? [...response.places] : [];
+              if (this.currentLocationCoords && placesList.length > 0) {
+                placesList.sort((a: any, b: any) => {
+                  const da = this.extractPlaceDistance(a);
+                  const db = this.extractPlaceDistance(b);
+                  return da - db;
+                });
+              }
+              const textAddresses = placesList.map((p: any) => p.formattedAddress || p.displayName);
+              const merged = Array.from(new Set([...textAddresses, ...placePredictions]));
               observer.next(merged);
               observer.complete();
             } catch (textErr) {
@@ -503,7 +514,15 @@ export class AppComponent implements OnInit, AfterViewInit {
                 (textRequest as any).locationBias = origin;
               }
               const response = await Place.searchByText(textRequest);
-              const placeNames = response.places ? response.places.map((p: any) => p.formattedAddress || p.displayName) : [];
+              let placesList: any[] = response.places ? [...response.places] : [];
+              if (this.currentLocationCoords && placesList.length > 0) {
+                placesList.sort((a: any, b: any) => {
+                  const da = this.extractPlaceDistance(a);
+                  const db = this.extractPlaceDistance(b);
+                  return da - db;
+                });
+              }
+              const placeNames = placesList.map((p: any) => p.formattedAddress || p.displayName);
               observer.next(placeNames);
               observer.complete();
             } catch (fallbackErr) {
@@ -551,6 +570,9 @@ export class AppComponent implements OnInit, AfterViewInit {
         console.warn('No se pudieron obtener coordenadas para el destino:', err);
       });
     }
+    if (this.firstFormGroup.get('desde')?.value && this.firstFormGroup.get('destino')?.value) {
+      this.validateBothAddresses();
+    }
   }
   
   // Método similar para cuando se selecciona el origen
@@ -568,6 +590,9 @@ export class AppComponent implements OnInit, AfterViewInit {
       }).catch(err => {
         console.warn('No se pudieron obtener coordenadas para el origen:', err);
       });
+    }
+    if (this.firstFormGroup.get('desde')?.value && this.firstFormGroup.get('destino')?.value) {
+      this.validateBothAddresses();
     }
   }
   
@@ -603,6 +628,9 @@ export class AppComponent implements OnInit, AfterViewInit {
         (position) => {
           this.currentLocationCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
           this.reverseGeocode(position.coords.latitude, position.coords.longitude);
+          if (this.firstFormGroup.get('desde')?.value && this.firstFormGroup.get('destino')?.value) {
+            this.validateBothAddresses();
+          }
         },
         (error) => {
           let errorMessage = 'Ocurrió un error desconocido al obtener la ubicación.';
@@ -645,6 +673,100 @@ export class AppComponent implements OnInit, AfterViewInit {
         this._snackBar.open('No se pudo obtener la dirección', 'Cerrar', { duration: 3000 });
       }
     });
+  }
+
+  private extractPlaceDistance(place: any): number {
+    if (!this.currentLocationCoords) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    const loc: any = place.location || place.latLng || null;
+    let plat: number | null = null;
+    let plng: number | null = null;
+    if (loc) {
+      if (typeof loc.lat === 'function' && typeof loc.lng === 'function') {
+        plat = loc.lat();
+        plng = loc.lng();
+      } else if (typeof loc.lat === 'number' && typeof loc.lng === 'number') {
+        plat = loc.lat;
+        plng = loc.lng;
+      } else if (loc.latLng && typeof loc.latLng.lat === 'function' && typeof loc.latLng.lng === 'function') {
+        plat = loc.latLng.lat();
+        plng = loc.latLng.lng();
+      }
+    }
+    if (plat == null || plng == null) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    return this.haversineMeters(this.currentLocationCoords.lat, this.currentLocationCoords.lng, plat, plng);
+  }
+
+  private haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const toRad = (v: number) => v * Math.PI / 180;
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return Math.round(R * c);
+  }
+
+  async validateAddressAsync(controlName: string): Promise<boolean> {
+    const control = this.firstFormGroup.get(controlName);
+    const address = control?.value;
+    if (address && address.length > 0) {
+      const response = await this.validateAddressWithApi(address);
+      if (response && response.result && response.result.verdict && response.result.verdict.addressComplete !== false && response.result.address.formattedAddress) {
+        control?.setValue(response.result.address.formattedAddress, { emitEvent: false });
+        if (control?.hasError('invalidAddress')) {
+          const errors = { ...control.errors };
+          delete (errors as any)['invalidAddress'];
+          control.setErrors(Object.keys(errors).length > 0 ? errors : null);
+        }
+        if (controlName === 'desde') {
+          this.desdeValidated = true;
+        } else if (controlName === 'destino') {
+          this.destinoValidated = true;
+        }
+        this.updateCanContinueFromStep1();
+        return true;
+      } else {
+        control?.setErrors({ ...control.errors, 'invalidAddress': true });
+        if (controlName === 'desde') {
+          this.desdeValidated = false;
+        } else if (controlName === 'destino') {
+          this.destinoValidated = false;
+        }
+        this.updateCanContinueFromStep1();
+        return false;
+      }
+    } else {
+      if (control?.hasError('invalidAddress')) {
+        const errors = { ...control.errors };
+        delete (errors as any)['invalidAddress'];
+        control.setErrors(Object.keys(errors).length > 0 ? errors : null);
+      }
+      if (controlName === 'desde') {
+        this.desdeValidated = false;
+      } else if (controlName === 'destino') {
+        this.destinoValidated = false;
+      }
+      this.updateCanContinueFromStep1();
+      return false;
+    }
+  }
+
+  async validateBothAddresses() {
+    await Promise.all([
+      this.validateAddressAsync('desde'),
+      this.validateAddressAsync('destino')
+    ]);
+  }
+
+  private updateCanContinueFromStep1() {
+    const d = this.firstFormGroup.get('desde');
+    const t = this.firstFormGroup.get('destino');
+    this.canContinueFromStep1 = !!d?.value && !!t?.value && !d?.hasError('invalidAddress') && !t?.hasError('invalidAddress') && this.desdeValidated && this.destinoValidated;
+    this.cdr.detectChanges();
   }
 
   private initGeolocationBias() {

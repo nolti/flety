@@ -84,7 +84,7 @@
                   </mat-form-field>
                   
                   <div class="button-group">
-                      <button mat-flat-button matStepperNext *ngIf="firstFormGroup.valid">Continuar</button>
+                      <button mat-flat-button matStepperNext [disabled]="!canContinueFromStep1" (click)="validateBothAddresses()">Continuar</button>
                   </div>
               </form>
           </mat-step>
