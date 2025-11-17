@@ -82,6 +82,11 @@ body.dark-theme {
     container-shape: 16px,
   ));
 
+  @include mat.radio-overrides((
+     checked-ripple-color : orange,
+     disabled-label-color : red,
+  ));
+
 }
 
 .mat-horizontal-content-container {

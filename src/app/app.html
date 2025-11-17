@@ -83,8 +83,8 @@
                       </mat-error>
                   </mat-form-field>
                   
-                  <div class="button-group">
-                      <button mat-flat-button matStepperNext [disabled]="!canContinueFromStep1" (click)="validateBothAddresses()">Continuar</button>
+                  <div class="button-group" *ngIf="canContinueFromStep1">
+                      <button mat-flat-button matStepperNext>Continuar</button>
                   </div>
               </form>
           </mat-step>
@@ -100,7 +100,7 @@
                     <div class="shipping-type-option">
                       <mat-radio-button value="mudanza" class="shipping-radio-button">
                         <div class="radio-button-content">
-                          <mat-icon class="shipping-icon">local_shipping</mat-icon>
+                          <mat-icon class="shipping-icon" fontIcon="local_shipping"></mat-icon>
                           <span class="radio-button-label">Mudanza</span>
                           <span class="radio-button-description">Muebles y pertenencias del hogar</span>
                         </div>
@@ -110,7 +110,7 @@
                     <div class="shipping-type-option">
                       <mat-radio-button value="articulos" class="shipping-radio-button">
                         <div class="radio-button-content">
-                          <mat-icon class="shipping-icon">inventory_2</mat-icon>
+                          <mat-icon class="shipping-icon" fontIcon="inventory_2"></mat-icon>
                           <span class="radio-button-label">Artículos</span>
                           <span class="radio-button-description">Cajas, paquetes o encomiendas</span>
                         </div>
@@ -128,8 +128,9 @@
                     </div>
 
                     <ng-container *ngIf="(dataSource | async) as data">
+                      
                       <div *ngIf="data.length > 0" class="articles-table-container">
-                        <table mat-table [dataSource]="data" class="mat-elevation-z2">
+                        <table mat-table [dataSource]="data" class="mat-elevation-z2 articles-table">
 
                           <!-- Name Column -->
                           <ng-container matColumnDef="nombre">
@@ -166,7 +167,7 @@
                             <th mat-header-cell *matHeaderCellDef> Acciones </th>
                             <td mat-cell *matCellDef="let element; let i = index">
                               <button mat-icon-button color="warn" (click)="removeArticulo(i)">
-                                <mat-icon>delete</mat-icon>
+                                <mat-icon class="delete-icon" fontIcon="delete"></mat-icon>
                               </button>
                             </td>
                           </ng-container>
@@ -179,6 +180,7 @@
                       <div *ngIf="data.length === 0" class="no-articles-message">
                         <p>Aún no has añadido ningún artículo.</p>
                       </div>
+
                     </ng-container>
                   </div>
 

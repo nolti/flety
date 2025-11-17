@@ -115,6 +115,9 @@ export class AppComponent implements OnInit, AfterViewInit {
   desdeValidated: boolean = false;
   destinoValidated: boolean = false;
   canContinueFromStep1: boolean = false;
+  private addressesValidator = (control: AbstractControl): ValidationErrors | null => {
+    return this.canContinueFromStep1 ? null : { addressesNotValidated: true };
+  };
 
   displayedColumns: string[] = ['nombre', 'largo', 'ancho', 'alto', 'peso', 'acciones'];
   dataSource = new BehaviorSubject<any[]>([]);
@@ -136,6 +139,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       destino: [{ value: '', disabled: true }, Validators.required],
       desde: [{ value: '', disabled: true }, Validators.required],
     });
+    this.firstFormGroup.addValidators(this.addressesValidator);
     this.secondFormGroup = this._formBuilder.group({
       tipoEnvio: ['mudanza', Validators.required],
       cantidadArticulos: [0], // Initialize with 0
@@ -188,10 +192,14 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     this.firstFormGroup.get('destino')?.valueChanges.subscribe(() => {
       this.resetCotizacion();
+      this.destinoValidated = false;
+      this.updateCanContinueFromStep1();
     });
 
     this.firstFormGroup.get('desde')?.valueChanges.subscribe(() => {
       this.resetCotizacion();
+      this.desdeValidated = false;
+      this.updateCanContinueFromStep1();
     });
 
     this.secondFormGroup.get('tipoEnvio')?.valueChanges.subscribe(value => {
@@ -766,6 +774,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     const d = this.firstFormGroup.get('desde');
     const t = this.firstFormGroup.get('destino');
     this.canContinueFromStep1 = !!d?.value && !!t?.value && !d?.hasError('invalidAddress') && !t?.hasError('invalidAddress') && this.desdeValidated && this.destinoValidated;
+    this.firstFormGroup.updateValueAndValidity({ onlySelf: true, emitEvent: false });
     this.cdr.detectChanges();
   }
 
