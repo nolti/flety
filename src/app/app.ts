@@ -218,16 +218,14 @@ export class AppComponent implements OnInit, AfterViewInit {
     const articulos = this.secondFormGroup.get('articulos') as FormArray;
 
     if (tipo === 'mudanza') {
-      articulos.clear();
-      this.dataSource.next([]);
       cantidadArticulos?.clearValidators();
-      cantidadArticulos?.setValue(0);
+      cantidadArticulos?.updateValueAndValidity();
     } else { // 'articulos'
       cantidadArticulos?.setValidators([Validators.required, Validators.min(0)]);
-      cantidadArticulos?.setValue(0);
-      this.updateArticulosArray(0);
+      cantidadArticulos?.setValue(articulos.length);
+      cantidadArticulos?.updateValueAndValidity();
+      this.dataSource.next(articulos.value);
     }
-    cantidadArticulos?.updateValueAndValidity();
   }
 
   onStepChange(event: any) {
@@ -1028,6 +1026,9 @@ export class AppComponent implements OnInit, AfterViewInit {
   }
 
   calculateArticleCosts(): number {
+    if (this.secondFormGroup.value.tipoEnvio !== 'articulos') {
+      return 0;
+    }
     let articleCosts = 0;
     if (this.secondFormGroup.value.articulos && this.secondFormGroup.value.articulos.length > 0) {
       this.secondFormGroup.value.articulos.forEach((article: any) => {
